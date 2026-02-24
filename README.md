@@ -1,4 +1,4 @@
-These files contain the computation labour of my Master's thesis. I have implemented a method of Bright and Siksek in [BS08], 
+These files contain the computational labour of my Master's thesis. I have implemented a method of Bright and Siksek in [BS08], 
 that is useful for proving a given n-covering of an elliptic curve is an element the Tate-Shafarevich group. We implement 
 two primary cases: (1) 2-coverings of elliptic curves and (2) one special 3-covering example known as Selmer's curve.
 For (1), the code we write is much more generalised and should (theoretically) work on any 2-covering. There will always be
