@@ -1,0 +1,185 @@
+PrimaryFactorisation := function(alpha)
+if alpha eq 0 then 
+return 0;
+else 
+I := ideal<OK | OK ! alpha>;
+factorised := []; 
+fact := Factorisation(I); 
+len := #fact; 
+for i in [1..len] do 
+if #factorised lt 1 then
+p := Factorisation(Norm(fact[i][1]))[1][1]; 
+np := fact[i][2]; 
+if p mod 3 eq 2 then 
+Append(~factorised, <K ! p, np>);
+elif p mod 3 eq 1 then 
+for a in [0..p] do 
+for b in [0..p] do
+if p eq a^2  + 3 * b^2 then 
+elt1 := a + b + 2*b*rho; 
+elt2 := a - b - 2*b*rho; 
+break a;
+end if;
+end for; end for; 
+units := [1, rho, rho^2, -1, -rho, -rho^2]; 
+count := 0; 
+for unit in units do 
+primeElt := unit*elt1;
+if (Integers() ! (K ! primeElt)[1]) mod 3 eq 2 and (Integers() !  (K ! primeElt)[2]) mod 3 eq 0 then 
+count := count + 1; 
+break unit; 
+end if; 
+end for; 
+if count eq 0 then 
+for unit in units do 
+primeElt := unit*elt2;
+if (Integers() ! (K ! primeElt)[1]) mod 3 eq 2 and (Integers() !  (K ! primeElt)[2]) mod 3 eq 0 then 
+count := count + 1; 
+break unit; 
+end if; 
+end for;
+end if; 
+np1 := Valuation(OK ! alpha, ideal<OK | primeElt>);
+np2 := Valuation(OK ! alpha, ideal<OK | ComplexConjugate(primeElt)>);
+if np1 gt 0 then 
+Append(~factorised, <K ! primeElt, np1>);
+end if; 
+if np2 gt 0 then 
+Append(~factorised, <K ! ComplexConjugate(primeElt), np2>); 
+end if; 
+elif p eq 3 then 
+lambda := 1- rho; 
+P3 := ideal< OK | lambda>; 
+n3 := Valuation(OK ! alpha, P3); 
+if n3 gt 0 then 
+Append(~factorised, <lambda, n3>); 
+end if;
+end if; 
+else 
+if Factorisation(Norm(fact[i][1]))[1][1] ne Factorisation(Integers() ! Norm(factorised[i-1][1]))[1][1] then
+p := Factorisation(Norm(fact[i][1]))[1][1]; 
+np := fact[i][2]; 
+if p mod 3 eq 2 then 
+Append(~factorised, <p, np>);
+elif p mod 3 eq 1 then 
+for a in [0..p] do 
+for b in [0..p] do
+if p eq a^2  + 3 * b^2 then 
+elt1 := a + b + 2*b*rho; 
+elt2 := a - b - 2*b*rho; 
+break a;
+end if;
+end for; end for; 
+units := [1, rho, rho^2, -1, -rho, -rho^2]; 
+count := 0; 
+for unit in units do 
+primeElt := unit*elt1;
+if (Integers() ! (K ! primeElt)[1]) mod 3 eq 2 and (Integers() !  (K ! primeElt)[2]) mod 3 eq 0 then 
+count := count + 1; 
+break unit; 
+end if; 
+end for; 
+if count eq 0 then 
+for unit in units do 
+primeElt := unit*elt2;
+if (Integers() ! (K ! primeElt)[1]) mod 3 eq 2 and (Integers() !  (K ! primeElt)[2]) mod 3 eq 0 then 
+count := count + 1; 
+break unit; 
+end if; 
+end for;
+end if; 
+np1 := Valuation(OK ! alpha, ideal<OK | primeElt>);
+np2 := Valuation(OK ! alpha, ideal<OK | ComplexConjugate(primeElt)>);
+if np1 gt 0 then 
+Append(~factorised, <primeElt, np1>);
+end if; 
+if np2 gt 0 then 
+Append(~factorised, <ComplexConjugate(primeElt), np2>); 
+end if; 
+elif p eq 3 then 
+lambda := 1- rho; 
+P3 := ideal< OK | lambda>; 
+n3 := Valuation(OK ! alpha, P3); 
+if n3 gt 0 then 
+Append(~factorised, <lambda, n3>); 
+end if;
+end if; 
+end if; 
+end if; 
+end for; 
+return factorised; 
+end if; 
+end function; 
+
+
+
+
+Cubefree := function(alpha)
+if alpha eq 0 then 
+return 0, 1;
+else 
+fact := PrimaryFactorisation(alpha);  
+len := #fact; 
+cubeless := [];
+cubed := [];
+for i in [1..len] do 
+if fact[i][2] lt 3 then 
+Append(~cubeless, fact[i][1]^fact[i][2]);
+else
+rem := Integers() ! Numerator(FractionalPart(fact[i][2]/3)); 
+quot := Integers() !  (fact[i][2] - rem)/3; 
+Append(~cubeless, fact[i][1]^rem); Append(~cubed, fact[i][1]^(Integers() ! quot)); 
+end if; 
+end for; 
+gamma :=  1;
+delta := 1; 
+for p in cubeless do
+gamma := gamma*p; 
+end for; 
+for p in cubed do
+delta := delta*p; 
+end for; 
+units := [1, rho, rho^2, -1, -rho, -rho^2]; 
+for unit in units do
+if unit * gamma * delta^3 eq alpha then 
+gamma := unit*gamma; 
+break unit; 
+end if; 
+end for; 
+return gamma, delta;
+end if; 
+end function; 
+
+
+
+
+GCDeis := function(alpha, beta) 
+units := [1, rho, rho^2, -1, -rho, -rho^2];
+opslag1 := []; 
+gcd := 1;
+if alpha in units or beta in units then 
+return 1; 
+elif alpha eq 0 and beta ne 0 then
+return alpha; 
+elif alpha ne 0 and beta eq 0 then
+return beta;
+elif alpha eq 0 and beta eq 0 then
+return "kan niet"; 
+else 
+facta := PrimaryFactorisation(alpha);
+factb := PrimaryFactorisation(beta); 
+lena := #facta; lenb := #factb; 
+for i in [1..lena] do 
+for j in [1..lenb] do 
+if facta[i][1] eq factb[j][1] then 
+if <facta[i][1], Minimum(facta[i][2], factb[j][2])> in opslag1 eq false then 
+Append(~opslag1, <facta[i][1], Minimum(facta[i][2], factb[j][2])>); 
+end if; 
+end if; 
+end for; end for; 
+end if; 
+for i in [1..#opslag1] do
+gcd := K ! opslag1[i][1]^opslag1[i][2]*gcd;
+end for; 
+return gcd; 
+end function;   

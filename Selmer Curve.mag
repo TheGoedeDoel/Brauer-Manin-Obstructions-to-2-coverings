@@ -1,0 +1,408 @@
+R<x> := PolynomialRing(Rationals()); 
+K<rho>  := NumberField(x^2 + x  + 1); 
+OK := MaximalOrder(K); 
+P2<T,Z,W> := ProjectivePlane(K);
+RK<XK> := PolynomialRing(K);
+C := Curve(P2, 3*T^3 + 4*Z^3 + 5*W^3);
+FC<x,y> := FunctionField(C); 
+
+//this block generates tuples [alpha,beta,gamma,delta]
+units := [1,  -1];
+Candidaten := [];  
+time for alpha in [-5..5] do
+alpha;
+for beta in [0..5] do
+for alpha1 in [-5..5] do 
+for beta1 in [0..5] do 
+if alpha ne 0 and beta ne 0 and alpha1 ne 0 and beta1 ne 0 then 
+if (K ! GCDeis(alpha + beta*rho,alpha1 + beta1*rho) eq 1 and (alpha1 + beta1*rho) ne 0) or ((alpha + beta*rho) eq 0 and (alpha1 + beta1*rho) eq 1) then
+gamma, delta := Cubefree(-6*(alpha+beta*rho)^3 - 10*(alpha1 +beta1*rho)^3);
+if AbsoluteValue(Norm(gamma)) lt 50 then 
+Append(~Candidaten,[alpha + beta*rho, alpha1 + beta1*rho, gamma, delta]);
+end if; end if; end if; end for; end for; end for; end for; 
+
+//this block creates the functions and calculates the corresponding field L 
+CK := BaseChange(C, K); 
+FCK<x,y> := FunctionField(CK);
+opslag := []; 
+maat := #Candidaten;
+for i in [1..maat] do 
+for j in [1..maat] do 
+if i lt j then 
+if (Candidaten[i][3])/(Candidaten[j][3]) in units then 
+Append(~opslag,[Candidaten[i], Candidaten[j]]); 
+end if; end if; 
+end for; end for; 
+for paar in opslag do 
+f := (x - paar[1][1]/paar[1][2])/(x - paar[2][1]/paar[2][2]);
+f;
+Df := Divisor(f); L := ResidueClassField(Support(Df)[1]);
+OL := MaximalOrder(L);
+Support(Df);
+end for; 
+
+//this is the 3-descent method, for phi and its dual
+//for primes p neq 3
+p := ;
+Qp := pAdicField(p, 50);
+R<x> := PolynomialRing(Rationals());
+K<r> := NumberField(x^2 + 3);
+OK := MaximalOrder(K);
+Ip := Decomposition(OK, p)[1][1];
+Kp<theta>, mLp:= Completion(K, Ip : Precision := 50); 
+Gp, phip := pSelmerGroup(3,Kp);
+mLg := Inverse(mLp);
+g := Inverse(phip);
+alpha := mLg(theta);
+RK<X> := PolynomialRing(Kp); 
+
+//compute generators of K_v*/(K_v*)³
+Lijst := [];
+for a1 in [0..2] do
+for a2 in [0..2] do
+	alph :=  g(Gp.1)^a1 * g(Gp.2)^a2; 
+    if a1 ne 0 or a2 ne 0  then
+    alp := mLg(alph);
+    Append(~Lijst, alp);
+    end if;
+end for;
+end for;
+
+//testing homogeneous space on phi
+B := 2*3^2*5*r;
+C := -24300;
+P2<T,Z,W> := ProjectivePlane(K);
+for delta in Lijst do 
+Ctem := Curve(P2, T^3-K ! delta*(Z^3* K! delta - 2*B*W^3));
+temp, point := IsLocallySolvable(Ctem,Ip); 
+if temp then
+point := LiftPoint(point, 50  : Strict := false);
+F<xf> := Parent(point[1]);
+temp, root := IsSquare(F ! -3); 
+mijn := hom<K -> F |root >;
+xx := point[1]*point[2]/point[3]^2;
+yy := (point[2]/point[3])^3*mijn(delta) - mijn(B);
+hold, mappp := pSelmerGroup(3,F);
+if mappp((yy + mijn(B))) eq mappp(mijn(delta)) then 
+print(delta); print([xx,yy,1]);
+yy^2 - xx^3 - C; 
+end if;
+end if; 
+end for; 
+
+//testing homogeneous space on phi dual 
+B1 := 2*3^4*5;
+C := -24300;
+P2<T,Z,W> := ProjectivePlane(K);
+for delta in Lijst do 
+Ctem := Curve(P2, T^3-K ! delta*(Z^3* K! delta - 2*B1*W^3));
+temp, point := IsLocallySolvable(Ctem,Ip); 
+if temp then
+point := LiftPoint(point,50  : Strict := false);
+F<xf> := Parent(point[1]);
+temp, root := IsSquare(F ! -3); 
+mijn := hom<K -> F |root >;
+u := point[1]*point[2]/point[3]^2;
+v := (point[2]/point[3])^3*mijn(delta) - mijn(B1);
+xx := (v^2 - 3*27*C)/(9*u^2); yy := v*(u^3 + 8*27*C)/(27*u^3);
+print(delta); print([xx,yy,1]); 
+yy^2 - xx^3  - C;
+end if;
+end for;  
+
+
+
+//funky primes... magma wrong? p = 13, etc 
+//Use the following code when magma returns a nonsense point on the curve
+temp, root := IsSquare(Qp ! -3); 
+mapa := hom<K -> Qp | root>; 
+for Z in [0..50] do
+for W in [0..50] do 
+if Z ne 0 or W ne 0 then 
+temp, T := IsPower(mapa(delta)^2*Z^3 - 2*mapa(delta*B)*W^3, 3); 
+if temp then 
+print([T, Z, W]); 
+break Z; 
+end if;
+end if; end for; end for; 
+
+
+//We perform the following computations using the code above and the method
+//described in the thesis, where we simplify computations when possible.
+//In particular, it is not always necessary to use the 3-descent code. 
+
+/////////////////////3////////////////////////
+Q3 := pAdicField(3,50); 
+R<x> := PolynomialRing(Rationals());
+K<r> := NumberField(x^2 + 3);
+OK := MaximalOrder(K);
+I3 := Decomposition(OK, 3)[1][1];
+K3<theta>, mL3:= Completion(K, I3 : Precision := 50); 
+G3, phi3 := pSelmerGroup(3,K3);
+mLg := Inverse(mL3);
+g := Inverse(phi3);
+alpha := mLg(theta);
+RK3<X> := PolynomialRing(K3); 
+
+//determine K_3*/(K_3*)³
+Lijst := [];
+for a1 in [0..2] do
+for a2 in [0..2] do
+for a3 in [0..2] do
+for a4 in [0..2] do
+	alph :=  g(G3.1)^a1 * g(G3.2)^a2 * g(G3.3)^a3 * g(G3.4)^a4; 
+    if a1 ne 0 or a2 ne 0 or a3 ne 0 or a4 ne 0 then
+    alp := mLg(alph);
+    Append(~Lijst, alp);
+    end if;
+end for; end for; end for; end for;
+
+B := 2*3^4*5;
+C := -24300;
+points := [];
+P2<T,Z,W> := ProjectivePlane(K);
+for delta in Lijst do 
+Ctem := Curve(P2, T^3-delta*(Z^3*delta - 2*B*W^3));
+temp, point := IsLocallySolvable(Ctem,I3); 
+if temp then
+point := LiftPoint(point,50  : Strict := false);
+F<xf> := Parent(point[1]);
+if point[2] ne O(xf^50) and point[1] ne O(xf^50) then  
+temp, alpha := IsSquare( F ! -3);
+mijn := hom<K -> F | alpha>; 
+u := point[1]*point[2]/point[3]^2;
+v := (point[2]/point[3])^3*mijn(delta) - mijn(B);
+xx := (v^2 - 3*27*C)/(9*u^2); yy := v*(u^3 + 8*27*C)/(27*u^3);
+hold, mappp := pSelmerGroup(3,F);
+Append(~points, [xx, yy, 1]);
+print(delta); print([xx,yy,1]);
+end if;
+end if; 
+end for; 
+
+B := 2*3^2*5*r;
+C := -24300;
+P2<T,Z,W> := ProjectivePlane(K);
+for delta in Lijst do 
+Ctem := Curve(P2, T^3-K ! delta*(Z^3* K! delta - 2*B*W^3));
+temp, point := IsLocallySolvable(Ctem,I3); 
+if temp then
+point := LiftPoint(point,50  : Strict := false);
+F<xf> := Parent(point[1]);
+temp, alpha := IsSquare(F ! -3); 
+mijn := hom<K -> F |alpha >;
+xx := point[1]*point[2]/point[3]^2;
+yy := (point[2]/point[3])^3*mijn(delta) - mijn(B);
+hold, mappp := pSelmerGroup(3,F);
+if Valuation(xx) lt 50 then 
+if mappp((yy + mijn(B))) eq mappp(mijn(delta)) then 
+print(delta); print([xx,yy,1]);
+yy^2 - xx^3 - C; 
+end if;
+else 
+print(delta); print("corresponds to u = 0"); 
+end if; 
+end if; 
+end for; 
+
+Q3 := pAdicField(3,50);
+FF<rho> := LocalField(Q3,CyclotomicPolynomial(3));
+load main;
+J,map := RamifiedRepresentation(FF);
+rho := map(rho);
+pi := UniformizingElement(J);
+temp, root3 := IsPower(J ! 5/4, 3);
+rr := 2*rho + 1; 
+
+7
+[ 118097655241*rr^2, 37*rr^3, 1]
+xx := 118097655241*rr^2;
+yy := 37*rr^3;
+imx := 5/9*root3^2*xx;
+imy := 5/108*root3*yy - 25/2*root3;
+imz := -5/108*yy - 25/2;
+imx := imx/imz;
+imy := imy/imz;
+
+r
+[ -94019126392*rr^4, -34*rr^5, 1]
+xx := -94019126392*rr^4;
+yy := -34*rr^5;
+imx := 5/9*root3^2*xx;
+imy := 5/108*root3*yy - 25/2*root3;
+imz := -5/108*yy - 25/2;
+imx := imx/imz;
+imy := imy/imz;
+
+//dual
+7
+[ 77351169064 , -72263420317, 1]
+xx := 77351169064;
+yy := -72263420317;
+imx := 5/9*root3^2*xx;
+imy := 5/108*root3*yy - 25/2*root3;
+imz := -5/108*yy - 25/2;
+imx := imx/imz;
+imy := imy/imz;
+
+//zero point (0, cbrt(5/4), -1)
+imx := 0; 
+imy := root3; 
+imz := -1; 
+imx := imx/imz;
+imy := imy/imz;
+
+hilbertSymbol((imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5)), J ! 4, 3, rho); 
+0 
+hilbertSymbol((imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5)), J ! 4, 3, rho); 
+0
+hilbertSymbol((imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5)), J ! 4, 3, rho); 
+0
+hilbertSymbol((imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5)), J ! 4, 3, rho); 
+0
+
+
+
+//////////////////////2///////////////////////
+p := 2;
+Qp := pAdicField(p,50);
+FF<rho> := LocalField(Qp,CyclotomicPolynomial(3));
+temp, root2 := IsPower(FF ! 3, 3);
+r := 2*rho + 1; 
+B := 2*3^2*5*r;
+
+load main;
+J,map := RamifiedRepresentation(FF);
+rho := map(rho);
+pi := UniformizingElement(J);
+
+
+//descent point
+xx := 0; yy := B; 
+imx :=-3265173504/62748517*root2^2*xx^2*1 - 816293376/62748517*xx*yy*1 - 220399211520/62748517*xx*1^2 - 29386561536/62748517*root2*yy*1^2 + 7934371614720/62748517*root2*1^3;
+imy := 7346640384/62748517*root2*xx^2*1 + 272097792/62748517*root2^2*xx*yy*1 - 73466403840/62748517*root2^2*xx*1^2 + 29386561536/62748517*yy*1^2 + 7934371614720/62748517*1^3;
+imz := 272097792/62748517*root2^2*xx*yy*1 - 14693280768/4826809*root2^2*xx*1^2 - 58773123072/62748517*yy*1^2; 
+imx := imx/imz;
+imy := imy/imz;
+//zero point
+imx := -root2;
+imy := 1; 
+
+
+hilbertSymbol((imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5)), J ! 4, 3, rho); 
+2
+//second point gives 
+(imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5))
+(165208147967991*J.1 - 244539584285851)*2^-1
+hilbertSymbol((165208147967991*J.1 - 244539584285851), J ! 4, 3, rho); 
+2 
+//(2^-1, 4)_2 is simply 1 hence the second symbol is also rho^2
+
+
+
+/////////////////////19////////////////////////
+//Note that -3 is a square
+p := 19;
+R<x> := PolynomialRing(Rationals()); 
+K<r> := NumberField(x^2 + 3);
+RK<XK> := PolynomialRing(K); 
+P2<T,Z,W> := ProjectivePlane(K);
+C := Curve(P2, 3*T^3 + 4*Z^3 + 5*W^3);
+LL<rr> := NumberField(XK^3 - 5/3);
+CLL := BaseChange(C, LL); 
+EC19, phiC19 := EllipticCurve(CLL, CLL ! [rr, 0,-1]); 
+psiC19 := Inverse(phiC19); 
+EELL := EllipticCurve([0,LL ! -24300]);
+lam19 := Isomorphism(EELL, EC19);
+map19 := lam19 * psiC19; 
+
+5/192*rr*$.2 - 225/32*rr*$.3
+15/64*rr^2*$.1
+-5/192*$.2 - 225/32*$.3
+
+Qp := pAdicField(p,50); 
+temp, r := IsSquare(Qp ! -3);
+B := 2*3^2*5*r;
+temp, rootp := IsPower(Qp ! 5/3, 3); 
+m := 3;
+rho := (-1 + r)/2;
+
+//descent generator
+xx := 0; 
+yy := B; 
+imx := 5/192*rootp*yy - 225/32*rootp*1; 
+imy := 15/64*rootp^2*xx; 
+imz := -5/192*yy - 225/32*1; 
+imx := imx/imz; 
+imy := imy/imz; 
+//zero point
+[-rootp, 0, 1];
+imx := -rootp; 
+imy := 0; 
+imz := 1; 
+
+
+(imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5))
+-3161788411085236099060712386411764570438944415898620050408349*19^-1
+(imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5)) 
+51735046039440984658094982084876398916402673893628626472735963*19^-1
+
+
+
+
+//////////////////37/////////////////////
+// -4C is a cube
+
+//point obtained from descent above 
+2
+point := [ Qp ! -168802306662554157310804061835140720222175583242804583409572855915597271903143, Qp ! 1 , Qp ! 2 ]; 
+xx := point[1]*point[2]/point[3]^2;
+yy := (point[2]/point[3])^3*mapa(delta) - mapa(B);
+[-684927084834347629950975725915544992683974526027867871976942222867728073816848
++ O(37^50), -1121802336942694590890665585049957662571059480754088257821413366219725661805479 + O(37^50)]
+
+
+//point from dual process
+2
+[ -477488682491794086525547835316524774590805294279696796617441364650617542987175 + O(37^50), -700724457598914021032339030408385778910685800229374345171716680606237612821034 + O(37^50), 1 + O(37^50) ]
+O(37^50)
+
+p := 37;
+Qp := pAdicField(p,50); 
+temp, r := IsSquare(Qp ! -3);
+B := 2*3^2*5*r;
+temp, rootp := IsPower(Qp ! 5/3, 3); 
+m := 3;
+rho := (-1 + r)/2;
+
+//first point
+xx := -684927084834347629950975725915544992683974526027867871976942222867728073816848; 
+yy := -1121802336942694590890665585049957662571059480754088257821413366219725661805479; 
+imx := 5/192*rootp*yy - 225/32*rootp*1; 
+imy := 15/64*rootp^2*xx; 
+imz := -5/192*yy - 225/32*1; 
+imx := imx/imz; 
+imy := imy/imz; 
+//second point
+xx := -477488682491794086525547835316524774590805294279696796617441364650617542987175; 
+yy := -700724457598914021032339030408385778910685800229374345171716680606237612821034; 
+imx := 5/192*rootp*yy - 225/32*rootp*1; 
+imy := 15/64*rootp^2*xx; 
+imz := -5/192*yy - 225/32*1; 
+imx := imx/imz; 
+imy := imy/imz; 
+//zero point 
+imx := -rootp; 
+imy := 0; 
+imz := 1; 
+
+(imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5))
+492713876414170538180571938491783085125364888244261507517231076295961365713619 
+(imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5))
+1224768433848822197549671919938869789473561935664016945670897811893289326449269
++ O(37^50)
+(imx - (2*rho  - 1)/(3*rho + 5))/(imx - (2*rho + 3)/(2*rho +5))
+383933556079384278700037559794759765744460408985289905632214549428979104638051 +
+O(37^50)
+
+//are all units so contribute nothing 
