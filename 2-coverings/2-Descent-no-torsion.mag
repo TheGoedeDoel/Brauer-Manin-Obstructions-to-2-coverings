@@ -1,0 +1,93 @@
+//This files contains the method for 2-descent when there is no two torsion on the elliptic curve (over Q_p). 
+
+twoDescentMijn := function(E, p, prec)
+generators := []; 
+Qp := pAdicField(p,prec);
+EE, mapE := WeierstrassModel(E); 
+mapE := Inverse(mapE); 
+h1 := DefiningEquations(mapE)[1]; h2 := DefiningEquations(mapE)[2]; h3 := DefiningEquations(mapE)[3]; 
+FE<u,v,w> := DefiningPolynomial(EE);
+d4 := -MonomialCoefficient(FE, u*w^2);
+d6 := -MonomialCoefficient(FE, w^3);
+K<z> := NumberField(X^3 +d4*X+d6);
+OK := MaximalOrder(K);
+Ip := Decomposition(OK, p)[1][1];
+Kp<b>, mLp := Completion(K,Ip : Precision := prec);
+mLg := Inverse(mLp);
+Gp, phip := pSelmerGroup(2,Kp);
+g := Inverse(phip);
+alpha := mLg(b);
+
+Admissabledelta := []; 
+for gelt in Gp do 
+if gelt ne Gp ! 0 then
+delta := mLg(g(gelt));
+temp, r := IsSquare((Norm(g(gelt))));
+if temp then 
+Append(~Admissabledelta, delta); 
+end if; 
+end if; 
+end for; 
+
+failedprimes := [];
+if #Admissabledelta eq 0 then 
+Append(~failedprimes, p); 
+Exclude(~primes, p);
+else 
+for delta1 in Admissabledelta do 
+e2 := delta1[3]; e1 := delta1[2]; e0 := delta1[1]; 
+a := e2^2*d4-e0*e2+e1^2;
+beta := -e2^2*d6-e0*e1; 
+if mLp(delta1[3]) ne 0 then  
+temp, r := IsSquare(Qp ! Norm(delta1));
+P2<U, V, W> := ProjectivePlane(Rationals());
+CU := Curve(P2, a*U^2 + e2 * W^2 - V^2); 
+temp, point :=  IsLocallySolvable(CU,p); 
+if temp eq false then
+hold := 1; 
+else 
+point := LiftPoint(point, prec : Strict := false);
+WW := point[3]/(Qp ! r); VV := (point[2] +beta*WW)/a; 
+UU := (point[1]-e1*VV-(e0-e2*d4)*WW)/e2;
+u := Rationals()! (UU); v := Rationals()! (VV); w := Rationals()! (WW); 
+delta := delta1*(u+v*z+w*z^2)^2; 
+aa := (delta[1]);
+bb := (-delta[2]);
+val := Minimum(Valuation(aa, 2),Valuation(bb,2)); 
+if IsDivisibleBy(val, 2) then 
+aa := aa/2^(val);
+bb := bb/2^(val);
+else 
+aa := aa/2^(val-1);
+bb := bb/2^(val-1);
+end if;
+aa := Numerator(aa)*Modinv(Denominator(aa), p^(prec)) mod p^prec; 
+bb := Numerator(bb)*Modinv(Denominator(bb), p^(prec)) mod p^prec; 
+delta := aa - bb*z; 
+
+temp, r := IsSquare(Qp ! Norm(delta));  
+H := HyperellipticCurve((4*bb^3)^(-1)*(X^4-(6*aa)*X^2+(8 * Rationals() ! r)*X+(-4*d4*bb^2-3*aa^2)));
+temp, point := IsLocallySolvable(H,p);
+if temp then 
+point  := LiftPoint(point,50 : Strict := false);
+lambda := point[1]; y := point[2]; mu := point[3]; 
+y^2 - (4*bb^3)^(-1)*(lambda^4-(6*aa)*lambda^2*mu^2+(8*r)*lambda*mu^3+(-4*d4*bb^2-3*aa^2)*mu^4);
+(lambda*mu/y)^2 - mu^2/y * lambda^2/y;
+w := lambda*mu/(r*y);
+v:= (aa*w-mu^2/y)/bb;
+u:= (aa*bb*v + (aa^2+2*d4*bb^2)*w-lambda^2/y)/(2*bb^2);
+
+aa*v^2 + (-d4*aa+ d6*bb)*w^2- 2*bb*u*v + 2*aa*u*w +2*d4*bb*v*w;
+
+newprec := Minimum([AbsolutePrecision(u), AbsolutePrecision(v), AbsolutePrecision(w)]); 
+x1 := pAdicField(p ,newprec) ! (delta * ( Rationals() ! u +  Rationals() ! v * z +  Rationals() ! w * z^2)^2)[1];
+temp, y1 := IsSquare(pAdicField(p ,newprec) ! (x1^3 + (Qp ! d4)*x1 + (Qp ! d6)));
+if temp then 
+P := [Rationals() ! x1, Rationals() ! y1,1]; 
+Q := [Qp ! Evaluate(h1, P), Qp ! Evaluate(h2, P), Qp ! Evaluate(h3, P)]; 
+P; 
+Append(~generators, Q); 
+end if; 
+end if; end if; end if; end for; end if; 
+return generators; 
+end function; 
