@@ -1,0 +1,253 @@
+P2<U, V, W> := ProjectivePlane(Rationals());
+R<X> := PolynomialRing(Rationals());
+D := EllipticCurveDatabase();
+prec := 50; //precision
+breadth := 100000000000000000000; //for controlling certain Magma errors
+
+time for N in [463..500] do 
+
+CurvesE := EllipticCurves(D, N);
+m := #CurvesE;
+TateE := []; 
+for E in CurvesE do 
+rank, gens, sha := MordellWeilShaInformation(E : ShaInfo, Silent := true);
+if sha[1][1] eq 2 and sha[1][2][1] gt 0 then 
+Append(~TateE, E); 
+end if;
+end for; 
+
+if #TateE ge 1 then 
+for E in TateE do 
+covers := TwoDescent(E);
+Tatecovers := []; 
+for C in covers do
+if #RationalPoints(C : Bound := 10000) eq 0 then 
+Append(~Tatecovers, <C,E>); 
+end if; 
+end for; 
+end for; //E in TateE
+
+if #Tatecovers ge 1 then 
+PrintFileMagma("C:/Users/John/Documents/Master's Thesis - Hasse Principle/ou\
+tput_file_2", "N = "); 
+PrintFileMagma("C:/Users/John/Documents/Master's Thesis - Hasse Principle/ou\
+tput_file_2", N); 
+
+for pair in Tatecovers do 
+C := pair[1]; E := pair[2]; 
+PrintFileMagma("C:/Users/John/Documents/Master's Thesis - Hasse Principle/ou\
+tput_file_2", "_________________________________________________________________________________"); 
+PrintFileMagma("C:/Users/John/Documents/Master's Thesis - Hasse Principle/ou\
+tput_file_2", C); 
+FC<x,y,z> := DefiningPolynomial(C); 
+M := [x^4, x^3*z,x^2*z^2,x*z^3,z^4];
+F := - (MonomialCoefficient(FC,x^4)*X^4 + MonomialCoefficient(FC, x^3*z)*X^3 + MonomialCoefficient(FC, x^2*z^2)*X^2 + MonomialCoefficient(FC, x*z^3)*X + MonomialCoefficient(FC,z^4));
+FF<x,y> := FunctionField(C);
+
+Candidaten := []; 
+time for alpha in [-1000..1000] do
+for beta in [0..1000] do
+if (GCD(alpha,beta) eq 1 and beta ne 0) or (alpha eq 0 and beta eq 1) then
+gamma, delta := SquareFree(Integers() ! (Coefficient(F,4)*alpha^4 +Coefficient(F,3)*alpha^3*beta+Coefficient(F,2)*alpha^2*beta^2+Coefficient(F,1)*alpha*beta^3+Coefficient(F,0)*beta^4));
+if AbsoluteValue(gamma) lt 200 then 
+Append(~Candidaten,[alpha,beta,gamma,delta]);
+end if; end if; end for; end for; 
+
+opslag := []; 
+NCandidaten := [];
+maat := #Candidaten;
+for i in [1..maat] do 
+for j in [1..maat] do 
+if i lt j then 
+if Candidaten[i][3] eq Candidaten[j][3] then 
+Append(~opslag,[Candidaten[i], Candidaten[j]]); 
+end if; end if; 
+end for; end for; 
+
+time for paar in opslag do 
+R<u> := PolynomialRing(Rationals());
+gamma := paar[1][3]; 
+f := (x - paar[1][1]/paar[1][2])/(x - paar[2][1]/paar[2][2]);
+primes := return_primes(C, paar); 
+reciprocity_save := []; 
+
+if #TwoTorsionSubgroup(E) ge 2 then //error
+time for p in primes do 
+prime := p; 
+Qp := pAdicField(p, prec); 
+gens := pAdic2Descent(E, p, prec);
+phi1, phi2, phi3, P := find_map(C, E, p, prec, breadth); 
+values := []; 
+for ppp in gens do
+pp := ppp[1];  
+xxx := (BaseChange(E, Qp) ! pp)[1];
+yyy := (BaseChange(E, Qp) ! pp)[2];
+zzz := (BaseChange(E, Qp) ! pp)[3];
+xx := Evaluate(phi1, [xxx,yyy,zzz]); yy := Evaluate(phi2, [xxx,yyy,zzz]); zz := Evaluate(phi3, [xxx,yyy,zzz]); 
+
+if Valuation(zz) lt 35 then 
+imx := xx/zz; imy := yy/zz^2; 
+fP := Evaluate(Numerator(f), [imx,imy])/Evaluate(Denominator(f), [imx, imy]);
+Append(~values, NormResidueSymbol(Rationals() ! fP, Rationals() ! gamma, p)); 
+else 
+Append(~values, 1); //the gluing map x -> 1/u implies that fP = 1 
+end if; 
+end for; // for pp in gens do 
+imx := P[1]; imy := P[2]; 
+fP := Evaluate(Numerator(f), [imx,imy])/Evaluate(Denominator(f), [imx, imy]);
+Append(~values, NormResidueSymbol(Rationals() ! fP, Rationals() ! gamma, p)); 
+Append(~reciprocity_save, <prime, values>); 
+end for; // for p in primes 
+if gamma lt 0 then 
+RR := RealField(50); 
+FC<xC,yC,zC> := DefiningPolynomial(C); 
+M := [xC^4, xC^3*zC,xC^2*zC^2,xC*zC^3,zC^4];
+F := - (MonomialCoefficient(FC,xC^4)*u^4 + MonomialCoefficient(FC, xC^3*zC)*u^3 + MonomialCoefficient(FC, xC^2*zC^2)*u^2 + MonomialCoefficient(FC, xC*zC^3)*u + MonomialCoefficient(FC,zC^4));
+for xt in [-5000..5000] do 
+for zt in [1..5000] do 
+a := Evaluate(F, xt/zt); 
+if a ge 0 then 
+temp, root := IsSquare(RR ! a); 
+PR := [xt/zt, root, 1]; 
+PR; 
+break xt; 
+end if;
+end for; 
+end for; // for xt in [..] do
+imx := PR[1]; imy := PR[2]; 
+fP := Evaluate(Numerator(f), [imx,imy])/Evaluate(Denominator(f), [imx, imy]);
+if fP ge 0 then 
+Append(~reciprocity_save,<0,[1]>);
+else  
+Append(~reciprocity_save,<0,[-1]>);
+end if; 
+end if; // if gamma lt 0  
+PrintFileMagma("C:/Users/John/Documents/Master's Thesis - Hasse Principle/ou\
+tput_file_2", paar); 
+PrintFileMagma("C:/Users/John/Documents/Master's Thesis - Hasse Principle/ou\
+tput_file_2", reciprocity_save); 
+
+
+
+else // #TwoTorsionSubgroup(E) ge 2
+for p in primes do 
+prime := p; 
+Qp := pAdicField(p, prec); 
+Ep := BaseChange(E, Qp); 
+EEp := WeierstrassModel(Ep);
+FP<xp, yp, zp> := DefiningPolynomial(EEp); 
+
+if IsSquare(MonomialCoefficient(FP, zp^3)) then 
+time for p in primes do 
+prime := p; 
+Qp := pAdicField(p, prec); 
+gens := pAdic2Descent(E, p, prec);
+phi1, phi2, phi3, P := find_map(C, E,  p, prec, breadth); 
+values := []; 
+for ppp in gens do
+pp := ppp[1];  
+xxx := (BaseChange(E, Qp) ! pp)[1];
+yyy := (BaseChange(E, Qp) ! pp)[2];
+zzz := (BaseChange(E, Qp) ! pp)[3];
+xx := Evaluate(phi1, [xxx,yyy,zzz]); yy := Evaluate(phi2, [xxx,yyy,zzz]); zz := Evaluate(phi3, [xxx,yyy,zzz]); 
+
+if Valuation(zz) lt 40 then 
+imx := xx/zz; imy := yy/zz^2; 
+fP := Evaluate(Numerator(f), [imx,imy])/Evaluate(Denominator(f), [imx, imy]);
+Append(~values, NormResidueSymbol(Rationals() ! fP, Rationals() ! gamma, p)); 
+else 
+Append(~values, 1); //the gluing map x -> 1/u implies that fP = 1 
+end if; 
+end for; // for pp in gens do 
+imx := P[1]; imy := P[2]; 
+fP := Evaluate(Numerator(f), [imx,imy])/Evaluate(Denominator(f), [imx, imy]);
+Append(~values, NormResidueSymbol(Rationals() ! fP, Rationals() ! gamma, p)); 
+Append(~reciprocity_save, <prime, values>); 
+end for; // for p in primes 
+if gamma lt 0 then 
+RR := RealField(50); 
+FC<xC,yC,zC> := DefiningPolynomial(C); 
+M := [xC^4, xC^3*zC,xC^2*zC^2,xC*zC^3,zC^4];
+F := - (MonomialCoefficient(FC,xC^4)*u^4 + MonomialCoefficient(FC, xC^3*zC)*u^3 + MonomialCoefficient(FC, xC^2*zC^2)*u^2 + MonomialCoefficient(FC, xC*zC^3)*u + MonomialCoefficient(FC,zC^4));
+for xt in [-5000..5000] do 
+for zt in [1..5000] do 
+a := Evaluate(F, xt/zt); 
+if a ge 0 then 
+temp, root := IsSquare(RR ! a); 
+PR := [xt/zt, root, 1]; 
+PR; 
+break xt; 
+end if;
+end for; 
+end for; // for xt in [..] do
+imx := PR[1]; imy := PR[2]; 
+fP := Evaluate(Numerator(f), [imx,imy])/Evaluate(Denominator(f), [imx, imy]);
+if fP ge 0 then 
+Append(~reciprocity_save,<0,[1]>);
+else  
+Append(~reciprocity_save,<0,[-1]>);
+end if; 
+end if; // if gamma lt 0  
+PrintFileMagma("C:/Users/John/Documents/Master's Thesis - Hasse Principle/ou\
+tput_file_2", paar); 
+PrintFileMagma("C:/Users/John/Documents/Master's Thesis - Hasse Principle/ou\
+tput_file_2", reciprocity_save); 
+
+
+
+
+else // if IsSquare(...)
+gens := twoDescentMijn(E, p, prec);
+phi1, phi2, phi3, P := find_map(C, E, p, prec, breadth); 
+values := []; 
+for ppp in gens do
+pp := ppp[1];  
+xxx := (BaseChange(E, Qp) ! pp)[1];
+yyy := (BaseChange(E, Qp) ! pp)[2];
+zzz := (BaseChange(E, Qp) ! pp)[3];
+xx := Evaluate(phi1, [xxx,yyy,zzz]); yy := Evaluate(phi2, [xxx,yyy,zzz]); zz := Evaluate(phi3, [xxx,yyy,zzz]); 
+imx := xx/zz; imy := yy/zz^2; 
+fP := Evaluate(Numerator(f), [imx,imy])/Evaluate(Denominator(f), [imx, imy]);
+Append(~values, NormResidueSymbol(Rationals() ! fP, Rationals() ! gamma, p)); 
+end for; //ppp in gens
+imx := P[1]; imy := P[2]; 
+fP := Evaluate(Numerator(f), [imx,imy])/Evaluate(Denominator(f), [imx, imy]);
+Append(~values, NormResidueSymbol(Rationals() ! fP, Rationals() ! gamma, p)); 
+Append(~reciprocity_save, <prime, values>); 
+end if; // if IsSquare(...)
+end for; // p in primes
+if gamma lt 0 then 
+RR := RealField(50); 
+FC<xC,yC,zC> := DefiningPolynomial(C); 
+M := [xC^4, xC^3*zC,xC^2*zC^2,xC*zC^3,zC^4];
+F := - (MonomialCoefficient(FC,xC^4)*u^4 + MonomialCoefficient(FC, xC^3*zC)*u^3 + MonomialCoefficient(FC, xC^2*zC^2)*u^2 + MonomialCoefficient(FC, xC*zC^3)*u + MonomialCoefficient(FC,zC^4));
+for xt in [-5000..5000] do 
+for zt in [1..5000] do 
+a := Evaluate(F, xt/zt); 
+if a ge 0 then 
+temp, root := IsSquare(RR ! a); 
+PR := [xt, root, 1]; 
+PR; 
+break xt; 
+end if;
+end for; 
+end for; 
+imx := PR[1]; imy := PR[2]; 
+fP := Evaluate(Numerator(f), [imx,imy])/Evaluate(Denominator(f), [imx, imy]);
+if fP ge 0 then 
+Append(~reciprocity_save,<0,[1]>);
+else  
+Append(~reciprocity_save,<0,[-1]>);
+end if; 
+end if; 
+PrintFileMagma("C:/Users/John/Documents/Master's Thesis - Hasse Principle/ou\
+tput_file_2", paar); 
+PrintFileMagma("C:/Users/John/Documents/Master's Thesis - Hasse Principle/ou\
+tput_file_2", reciprocity_save); 
+
+end if; // if TwoTorsionGroup(E) ge 2 
+end for; //for paar 
+end for;// for C in TateCovers
+end if; // if #Tatecovers ge 1  
+end if; //if TateE ge 1
+end for; // for N in [..]  
