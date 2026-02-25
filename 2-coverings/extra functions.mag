@@ -1,0 +1,249 @@
+//this files contains the extra functions necessary for Bright-Siksek-Method.mag 
+
+return_primes := function(C, paar)
+FF<x,y> := FunctionField(C);
+f := (x - paar[1][1]/paar[1][2])/(x - paar[2][1]/paar[2][2]);
+FC<x,y,z> := DefiningPolynomial(C); 
+F := - (MonomialCoefficient(FC,x^4)*X^4 + MonomialCoefficient(FC, x^3*z)*X^3 + MonomialCoefficient(FC, x^2*z^2)*X^2 + MonomialCoefficient(FC, x*z^3)*X + MonomialCoefficient(FC,z^4));
+Df := Divisor(f); L := ResidueClassField(Support(Df)[1]);
+OL := MaximalOrder(L);
+gamma := paar[1][3];
+primes := []; 
+Delta := Discriminant(OL);
+if #Decomposition(OL,2) eq 1 then 
+Append(~primes, 2);
+end if;
+facttop := Factorisation(paar[1][2]);
+factbot := Factorisation(paar[2][2]);
+len1 := #facttop;
+len2 := #factbot;
+if len1 ne 0 then 
+for i in [1..len1] do
+if #Decomposition(OL, facttop[i][1]) eq 1 and facttop[i][1] ne 2 then
+Append(~primes, facttop[i][1]);
+end if;
+end for;
+end if;  
+if #factbot ne 0 then 
+for i in [1..len2] do
+if #Decomposition(OL, factbot[i][1]) eq 1 and factbot[i][1] notin primes then
+Append(~primes, factbot[i][1]);
+end if;
+end for;
+end if; 
+top1 := Evaluate(F, paar[1][1]/paar[1][2]); 
+bot1 := Evaluate(F, paar[2][1]/paar[2][2]); 
+facttop11 := Factorisation(Numerator(top1));
+facttop12 := Factorisation(Denominator(top1));
+factbot11 := Factorisation(Numerator(bot1));
+factbot12 := Factorisation(Denominator(bot1));
+len11 := #facttop11;
+len12 := #facttop12;
+len21 := #factbot11;
+len22 := #factbot12;
+if len11 ne 0 then 
+for i in [1..len11] do
+if #Decomposition(OL, facttop11[i][1]) eq 1 and facttop11[i][1] notin primes then
+Append(~primes, facttop11[i][1]);
+end if;
+end for;
+end if; 
+if len12 ne 0 then 
+for i in [1..len12] do
+if #Decomposition(OL, facttop12[i][1]) eq 1 and facttop12[i][1] notin primes then
+Append(~primes, facttop12[i][1]);
+end if;
+end for;
+end if; 
+if len21 ne 0 then 
+for i in [1..len21] do
+if #Decomposition(OL, factbot11[i][1]) eq 1 and factbot11[i][1] notin primes then
+Append(~primes, factbot11[i][1]);
+end if;
+end for;
+end if; 
+if len22 ne 0 then 
+for i in [1..len22] do
+if #Decomposition(OL, factbot12[i][1]) eq 1 and factbot12[i][1] notin primes then
+Append(~primes, factbot12[i][1]);
+end if;
+end for;
+end if; 
+primes2 := [];
+for data in Factorisation(Delta) do 
+Append(~primes2, data[1]); 
+end for; 
+primes := Set(primes) join Set(primes2);
+return primes; 
+end function; 
+
+
+find_map := function(C, E, p, prec,breadth)
+R<u> := PolynomialRing(Rationals());
+Qp := pAdicField(p, prec); 
+FC<x,y,z> := DefiningPolynomial(C); 
+M := [x^4, x^3*z,x^2*z^2,x*z^3,z^4];
+F := - (MonomialCoefficient(FC,x^4)*u^4 + MonomialCoefficient(FC, x^3*z)*u^3 + MonomialCoefficient(FC, x^2*z^2)*u^2 + MonomialCoefficient(FC, x*z^3)*u + MonomialCoefficient(FC,z^4));
+temp, point := IsLocallySolvable(C,p); 
+for i in [1..3] do
+if AbsolutePrecision(point[i]) lt (prec - 20) then
+point := LiftPoint(point, prec : Strict := false); 
+break i; 
+end if; end for; 
+xx := Rationals() ! point[1];
+a := Evaluate(F, xx); 
+temp, root := IsSquare(Qp ! a); 
+if temp then 
+K := NumberField(u^2 - a); 
+mapK := hom<K -> Qp | root>; 
+Kpoly<uK,vK,wK> := PolynomialRing(K,3); 
+QpPoly<up, vp, wp> := PolynomialRing(Qp, 3); 
+mapKpoly := hom<Kpoly -> QpPoly | mapK, up, vp, wp>; 
+CK := BaseChange(C, K); 
+EC, phiC := EllipticCurve(CK, CK ! [K ! xx, K.1 ,1]); 
+EK := BaseChange(E, K); 
+psiC := Inverse(phiC); 
+lam := Isomorphism(EK, EC);
+mapC := lam * psiC; 
+h1 := DefiningEquations(mapC)[1]; h2 := DefiningEquations(mapC)[2]; h3 := DefiningEquations(mapC)[3]; 
+phi1 := mapKpoly(h1); phi2 := mapKpoly(h2); phi3 := mapKpoly(h3);
+P :=  BaseChange(C, Qp) ! [Qp ! xx, root, Qp ! 1]; 
+return phi1, phi2, phi3, P; 
+
+else  
+count := 0;
+if Rationals() ! Evaluate(F, point[1]) eq 0 then 
+yy := 0; 
+Rp := PolynomialRing(Qp);
+factF := Factorisation(F);
+for tuple in factF do 
+factor := tuple[1];
+temp, root := HasRoot(Rp ! factor);
+if temp eq true then
+xx := root; 
+poly := factor; 
+break tuple;
+end if; end for; 
+K := NumberField(poly);
+mapK := hom<K -> Qp | xx>; 
+Kpoly<uK,vK,wK> := PolynomialRing(K,3); 
+QpPoly<up, vp, wp> := PolynomialRing(Qp, 3); 
+mapKpoly := hom<Kpoly -> QpPoly | mapK, up, vp, wp>; 
+CK := BaseChange(C, K); 
+EC, phiC := EllipticCurve(CK, CK ! [K.1, 0 ,1]); 
+EK := BaseChange(E, K); 
+psiC := Inverse(phiC); 
+lam := Isomorphism(EK, EC);
+mapC := lam * psiC; 
+h1 := DefiningEquations(mapC)[1]; h2 := DefiningEquations(mapC)[2]; h3 := DefiningEquations(mapC)[3]; 
+phi1 := mapKpoly(h1); phi2 := mapKpoly(h2); phi3 := mapKpoly(h3);
+P :=  BaseChange(C, Qp) ! [xx, yy, Qp ! 1]; 
+count := count + 1; 
+return phi1, phi2, phi3, P; 
+end if; 
+
+
+if count lt 1 and Rationals() ! point[3] eq 0 then 
+zz := 0; 
+a4 :=  MonomialCoefficient(F,u^4);
+temp, root := IsSquare(Qp ! a4); 
+K := NumberField(u^2 - a4); 
+mapK := hom<K -> Qp | root>; 
+Kpoly<uK,vK,wK> := PolynomialRing(K,3); 
+QpPoly<up, vp, wp> := PolynomialRing(Qp, 3); 
+mapKpoly := hom<Kpoly -> QpPoly | mapK, up, vp, wp>; 
+CK := BaseChange(C, K); 
+EC, phiC := EllipticCurve(CK, CK ! [1, K.1 , 0]); 
+EK := BaseChange(E, K); 
+psiC := Inverse(phiC); 
+lam := Isomorphism(EK, EC);
+mapC := lam * psiC; 
+h1 := DefiningEquations(mapC)[1]; h2 := DefiningEquations(mapC)[2]; h3 := DefiningEquations(mapC)[3]; 
+phi1 := mapKpoly(h1); phi2 := mapKpoly(h2); phi3 := mapKpoly(h3);
+P :=  BaseChange(C, Qp) ! [Qp ! 1, root, 0]; 
+count := count + 1; 
+return phi1, phi2, phi3, P; 
+end if; 
+
+
+if count lt 1 then //this is for when magma produces a point that is not actually on the scheme via an approximation error
+R<u> := PolynomialRing(Rationals());
+Qp := pAdicField(p, prec); 
+FC<x,y,z> := DefiningPolynomial(C); 
+M := [x^4, x^3*z,x^2*z^2,x*z^3,z^4];
+F := - (MonomialCoefficient(FC,x^4)*u^4 + MonomialCoefficient(FC, x^3*z)*u^3 + MonomialCoefficient(FC, x^2*z^2)*u^2 + MonomialCoefficient(FC, x*z^3)*u + MonomialCoefficient(FC,z^4));
+temp, point := IsLocallySolvable(C,p); 
+xx := Rationals() ! point[1];
+a := Evaluate(F, point[1]); 
+temp, root := IsSquare(Qp ! a); 
+if temp then 
+K := NumberField(u^2 - a); 
+mapK := hom<K -> Qp | root>; 
+Kpoly<uK,vK,wK> := PolynomialRing(K,3); 
+QpPoly<up, vp, wp> := PolynomialRing(Qp, 3); 
+mapKpoly := hom<Kpoly -> QpPoly | mapK, up, vp, wp>; 
+CK := BaseChange(C, K); 
+EC, phiC := EllipticCurve(CK, CK ! [K ! xx, K.1 ,1]); 
+EK := BaseChange(E, K); 
+psiC := Inverse(phiC); 
+lam := Isomorphism(EK, EC);
+mapC := lam * psiC; 
+h1 := DefiningEquations(mapC)[1]; h2 := DefiningEquations(mapC)[2]; h3 := DefiningEquations(mapC)[3]; 
+phi1 := mapKpoly(h1); phi2 := mapKpoly(h2); phi3 := mapKpoly(h3);
+P :=  BaseChange(C, Qp) ! [Qp ! xx, root, Qp ! 1]; 
+return phi1, phi2, phi3, P; 
+
+count := 0;//desperate search
+for x in [0..10000] do 
+a := Evaluate(F, x); 
+temp, root := IsSquare(pAdicField(p, 15) ! a); 
+if temp then 
+temp, root := IsSquare(Qp ! a); 
+K := NumberField(u^2 - a); 
+mapK := hom<K -> Qp | root>; 
+Kpoly<uK,vK,wK> := PolynomialRing(K,3); 
+QpPoly<up, vp, wp> := PolynomialRing(Qp, 3); 
+mapKpoly := hom<Kpoly -> QpPoly | mapK, up, vp, wp>; 
+CK := BaseChange(C, K); 
+EC, phiC := EllipticCurve(CK, CK ! [K ! x, K.1 ,1]); 
+EK := BaseChange(E, K); 
+psiC := Inverse(phiC); 
+lam := Isomorphism(EK, EC);
+mapC := lam * psiC; 
+h1 := DefiningEquations(mapC)[1]; h2 := DefiningEquations(mapC)[2]; h3 := DefiningEquations(mapC)[3]; 
+phi1 := mapKpoly(h1); phi2 := mapKpoly(h2); phi3 := mapKpoly(h3);
+xx := x; 
+P :=  BaseChange(C, Qp) ! [Qp ! xx, root, Qp ! 1]; 
+count := count + 1;
+return phi1, phi2, phi3, P; 
+break x; 
+end if; end for; 
+if count eq 0 then 
+for random x in [10000..breadth] do 
+a := Evaluate(F, x); 
+temp, root := IsSquare(pAdicField(p, 15) ! a); 
+if temp then 
+temp, root := IsSquare(Qp ! a); 
+K := NumberField(u^2 - a); 
+mapK := hom<K -> Qp | root>; 
+Kpoly<uK,vK,wK> := PolynomialRing(K,3); 
+QpPoly<up, vp, wp> := PolynomialRing(Qp, 3); 
+mapKpoly := hom<Kpoly -> QpPoly | mapK, up, vp, wp>; 
+CK := BaseChange(C, K); 
+EC, phiC := EllipticCurve(CK, CK ! [K ! x, K.1 ,1]); 
+EK := BaseChange(E, K); 
+psiC := Inverse(phiC); 
+lam := Isomorphism(EK, EC);
+mapC := lam * psiC; 
+h1 := DefiningEquations(mapC)[1]; h2 := DefiningEquations(mapC)[2]; h3 := DefiningEquations(mapC)[3]; 
+phi1 := mapKpoly(h1); phi2 := mapKpoly(h2); phi3 := mapKpoly(h3);
+xx := x; 
+P :=  BaseChange(C, Qp) ! [Qp ! xx, root, Qp ! 1]; 
+return phi1, phi2, phi3, P; 
+break x; 
+end if; end for; 
+end if;
+end if; 
+end if; 
+end if; //temp false for IsSquare(a)
+end function; 
