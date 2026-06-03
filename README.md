@@ -3,7 +3,7 @@ that is useful for proving a given n-covering of an elliptic curve is an element
 two primary cases: (1) 2-coverings of elliptic curves and (2) one special 3-covering example known as Selmer's curve.
 For (1), the code I write is much more generalised and should (theoretically) work on any 2-covering. There will always be
 exceptions, and I imagine if you run the code for long enough it will eventually break. However, it is verified to function
-for various examples. You find this in the files ... 
+for various examples. You find the result of my computations in the output.txt file in 2-coverings. 
 
 For (2),I rexamine the special cubic 3X³ + 4Y³ + 5Z³ = 0, known for violating the Hasse principle. You find the contents of these 
 computations in Selmer Curve.mag and Eisenstein Integers.mag. The Latter file contains the methods for factorising integers in 
