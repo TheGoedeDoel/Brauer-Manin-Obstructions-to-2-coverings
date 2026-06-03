@@ -5,7 +5,7 @@ For (1), the code I write is much more generalised and should (theoretically) wo
 exceptions, and I imagine if you run the code for long enough it will eventually break. However, it is verified to function
 for various examples. You find the result of my computations in the output.txt file in 2-coverings. 
 
-For (2), I rexamine the special cubic 3X³ + 4Y³ + 5Z³ = 0, known for violating the Hasse principle. You find the contents of these 
+For (2), I re-examine the special cubic 3X³ + 4Y³ + 5Z³ = 0, known for violating the Hasse principle. You find the contents of these 
 computations in Selmer Curve.mag and Eisenstein Integers.mag. The Latter file contains the methods for factorising integers in 
 Z[rho] for rho^2 + rho + 1 = 0. It also contains a function for computing the gcd of two Eisenstein integers. The first file, is 
 the more interesting one, and it contains the computations that are the primary subject matter of [BS08]. The code is NOT automated:
